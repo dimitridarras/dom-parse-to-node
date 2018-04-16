@@ -1,0 +1,297 @@
+<?php
+
+/*
+ *Implement hook_menu().
+ */
+
+function dom_parse_to_node_menu() {
+  $items = array();ß
+  $items['admin/dom_parse_to_node'] = array(
+    'title' => 'dom_parse_to_node',
+    'access arguments' => array('administer import'),
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'dom_parse_to_node_filler',
+  );ß
+  $items['admin/dom_parse_to_node/dashboard'] = array(
+    'title' => 'dom_parse_to_node Importer Instructions',
+    'access arguments' => array('administer imports'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -40,
+  );
+ $items['admin/dom_parse_to_node/import'] = array(
+	'title' => 'dom_parse_to_node Importer',
+	'access arguments' => array('Scrape and Save new dom_parse_to_node Data'),
+  	//'description' => 'Import Data from dom_parse_to_node in Batches',
+	'type' => MENU_LOCAL_TASK, 
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('dom_parse_to_node_simple_form'),   
+  );
+  $items['admin/dom_parse_to_node/remote'] = array(
+    'title' => 'Write Nodes',
+  	'access arguments' => array('Scrape and Save new dom_parse_to_node Data'),    
+	'type' => MENU_LOCAL_TASK,   
+    //'description' => 'Import Data from dom_parse_to_node in Batches',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('dom_parse_to_node_local_simple_form'),
+  );
+  return $items;
+}
+
+function dom_parse_to_node_filler() {
+$form['description'] = array(
+    '#type' => 'markup',
+    '#markup' => t('Welcome to the dom_parse_to_node Importer<br>-------------------------------------<br>There is a two step process for importing and writing data:<br><br>
+      <b>A)</b> First, click on the tab at right to scape data from your target web page.  This will scrape live data off and save it.
+      <br><br>
+      <b>B)</b> Second, click on "Write Nodes" to write the data to each matching node. <br><br> For the first step, you will see a batch status.   You will not break anything by initiating the steps out of order, however you need to complete both steps.'),
+	'#title' => 'Parser',
+  );
+  return $form;
+}
+
+function dom_parse_to_node_intro() {
+$form['description'] = array(
+    '#type' => 'markup',
+    '#markup' => t('Note the process may hang or timeout which is to be expected.  You may attempt the batch process again'),
+    '#title' => 'Parser',
+  );
+  return $form;
+}
+
+function dom_parse_to_node_simple_form() {
+  $form['description'] = array(
+    '#type' => 'markup',
+    '#markup' => t('dom_parse_to_node HTML Importer and Datbase Write<br>--------------------------------------<br><br>You will 
+      receive a status from drupal on remaining imports.   If you move away 
+      from this screen, it will pick up where it left off when you return.   Timeouts may ensue due to https connectivity.<br><br>'),
+	'#title' => 'Parser',
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Go',
+  );
+  return $form;
+}
+
+function dom_parse_to_node_local_simple_form(){
+$form['description'] = array(
+    '#type' => 'markup',
+    '#markup' => t('Write Requirements to Nodes<br>--------------------------------------<br>When this step is complete, check to make sure nodes are written to in the content admin.   HTML will be embedded diretly into your designated field.  You may 
+      need to tweak it beyond that point and double check for matches with   Codes<br><br>'),
+    '#title' => 'Parser',
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Go',
+  );
+  return $form;
+}
+
+/*
+ *Implement hook_help() - currently disabled by custom UI
+ */
+
+function dom_parse_to_node_help($path, $arg) {
+  switch ($path) {
+    case "admin/help#dom_parse_to_node":
+      return t("A Two-Step Import of dom_parse_to_node data.   The first step may fail due to a parsing error.  Atempt it again."); 
+      break; 
+  }
+}
+
+/*
+ *Implement form_submit().
+ */
+
+function dom_parse_to_node_simple_form_submit($form, &$form_state) {
+	drupal_set_message("Form submitted");
+//Check to see if Simple HTML Dom works
+	    $target_url = "YOUR_TARGET_URL";
+//Can also be a field
+			$html = new simple_html_dom();
+			$html->load_file($target_url);
+//get programs into a hyperlink format for the importer
+		    foreach($html->find('a') as $link) {
+			    if (strpos($link->href, "DIR") !== FALSE) {
+	        $hyperlink = "<a  href='YOUR_TARGET_URL".$link->href."'>YOUR_TARGET_URL".$link->href."</a>";
+//get the hyperlink in raw format so that it can be imported
+			    $raw_hyperlink = "YOUR_TARGET_URL".$link->href;
+					$all_raw_hyperlinks[] = $raw_hyperlink;
+					$all_hyperlinks[] = $hyperlink;
+					//drupal_set_message($hyperlink);
+					//$the_divisor = (ceil(count($all_hyperlinks)/20));
+//create batches - "buckets":  loop through the array in batches of $the_divisor 20x and increment
+      $progress = 0; // where to start
+      $ceiling = 20; // how many to process for each run; clamped down to be mindful of  requests
+		}
+	}
+//return($all_raw_hyperlinks);
+batch_dom_parse_to_node($all_raw_hyperlinks,$progress,$ceiling);	
+}
+
+/**
+ * The $batch can include the following values. Only 'operations'
+ * and 'finished' are required, all others will be set to default values.
+ *
+ * @param operations
+ *   An array of callbacks and arguments for the callbacks.
+ *   There can be one callback called one time, one callback
+ *   called repeatedly with different arguments, different
+ *   callbacks with the same arguments, one callback with no
+ *   arguments, etc. (Use an empty array if you want to pass 
+ *   no arguments.)
+ *
+ * @param finished
+ *   A callback to be used when the batch finishes.
+ *
+ * @param title
+ *   A title to be displayed to the end user when the batch starts. The default is 'Processing'.
+ *
+ * @param init_message
+ *   An initial message to be displayed to the end user when the batch starts.
+ *
+ * @param progress_message
+ *   A progress message for the end user. Placeholders are available.
+ *   Placeholders note the progression by operation, i.e. if there are
+ *   2 operations, the message will look like:
+ *    'Processed 1 out of 2.'
+ *    'Processed 2 out of 2.'
+ *   Placeholders include:
+ *     @current, @remaining, @total and @percentage
+ *
+ * @param error_message
+ *   The error message that will be displayed to the end user if the batch
+ *   fails.
+ *
+ * @param file
+ *   Path to file containing the callbacks declared above. Always needed when
+ *   the callbacks are not in a .module file.
+ *
+ */
+
+//menu callback function - sets up the batch
+function batch_dom_parse_to_node($all_raw_hyperlinks,$progress,$ceiling) {
+  $batch = array(
+    'operations' => array(),
+    'finished' => 'dom_parse_to_node_batch_finished', // runs after batch is finished
+    'title' => t('Processing Import'),
+    'init_message' => t('Import is starting.'),
+    'progress_message' => t('Processed @current out of @total.'),
+    'error_message' => t('Import has encountered an error.'),
+  );
+  $max = 120; // how many records to process until stop - can do query here to get max times to run
+//$max = count($all_raw_hyperlinks);
+  
+  while ($progress <= $max) {
+    drupal_set_message("Progress and ceiling ". $progress." and ".$ceiling);
+    $batch['operations'][] = array('dom_parse_to_node_parser', array($all_raw_hyperlinks,$progress,$ceiling));   
+    $progress = $progress + $ceiling;
+  } 
+  batch_set($batch);
+//batch_process('admin/dom_parse_to_node'); // page to return to after complete
+}
+
+function dom_parse_to_node_parser($all_raw_hyperlinks,$progress, $ceiling, &$context) {
+ drupal_set_message("Function Progress and ceiling ". $progress." and ".$ceiling);  
+//drupal_set_message("Here is progress: ".$progress);
+//dpm($ceiling);
+
+$codes = array();
+
+//slice array using limits and progress marker
+$output_raw = array_slice($all_raw_hyperlinks, $progress, $ceiling); 
+//dpm($output_raw);
+drupal_set_message("Sliced URLs: ".count($output_raw)); 
+$codes = array();
+//loop through $the_result with a foreach, load each page, and extract all   IDs 
+    foreach($output_raw as $the_item) {
+//drupal_set_message($the_item);
+      $the_html = file_get_html($the_item);    
+//dpm("Imported HTML: ".$the_html);  
+//needs a fail case since IDs are inconsistently implemented on the 
+      foreach($the_html->find('#YOUR_ID_OR_DOM_ELEMENT') as $html_code_extract_ ) {    
+            //drupal_set_message("  Code Extracted from Import: ".$html_code_extract_ );      
+            $codes[] = (string)$html_code_extract_ ->innertext();
+            
+            foreach($the_html->find('YOUR_CLASS_OR_DOM_ELEMENT') as $html_code_requirements_container){  
+              $db_  = db_insert('dom_parse_to_node')
+            ->fields(array(
+              'CDATA' => (string)$html_code_extract_ ->innertext(),
+              'the_id' => substr((string)$html_code_requirements_container->innertext(),21,-9),
+            ))
+            ->execute();
+          }
+        }
+    }
+  }   
+function dom_parse_to_node_local_simple_form_submit($form, &$form_state) {
+//form needs reworking to skip this
+  dom_parse_to_node_get_local_data();
+}
+function dom_parse_to_node_get_local_data()  
+  {
+//create a list from the database of existing nodes to compare
+    $type = "YOUR_CONTENT_TYPE";
+    $nodes = node_load_multiple($nids = array(), $conditions = array('type' => $type));
+    $node_length = count($nodes);
+//drupal_set_message("******* Number of Nodes ********<br>".$node_length);
+    $the_counter = 0;
+    $container = array();
+    $container_nid = array();
+      foreach($nodes as $ac_program) {
+//temporary bounds for import
+         if($the_counter < 100){
+              //$container[] = array($ac_program->nid);          
+              $container[] = array($ac_program->field_guid[LANGUAGE_NONE][0]['value']);  
+              $the_counter++;                         
+//there's a better way to do this:               
+              $container_nid[] = array($ac_program->nid);                              
+          }        
+    }
+
+// dpm($container_nid);
+
+// loop through the local ID's from Nodes; save table to DB to compare
+    foreach($container as $index => $container_item) {
+    $db_  = db_insert('internal_codes')
+   ->fields(array(
+            'nid' => $container_nid[$index],
+            'the_id' => $container_item,
+             'data' => "New Value",
+          ))    
+          ->execute();  
+      }
+/*
+https://knackforge.com/blog/sabareesh/iterate-2-arrays-single-foreach-loop
+foreach( $codes as $index => $code ) {
+  print $code . 'is your Id code and ' . $names[$index] . 'is your name';
+}
+*/
+dom_parse_to_node_write__data(); 
+}
+      
+function dom_parse_to_node_write__data() 
+  {
+//Select tables based on common   ID
+//drupal_set_message("write");
+//using db_query which is less restrictive than dynamic queries (no SELECT DISTINCT)
+  $sql = "SELECT DISTINCT internal_codes.nid, dom_parse_to_node.id, internal_codes.id, dom_parse_to_node.CDATA from dom_parse_to_node ,internal_codes WHERE dom_parse_to_node.id = internal_codes.id";
+
+  $result = db_query($sql);
+
+//use the node ID to identify the node to be written; write the cdata to the table.
+  foreach($result as $record) {  
+//dpm($record); 
+//$the_value =  $record->nid;
+//drupal_set_message($the_value);   dom_parse_to_node
+    $node = node_load($record->nid);
+//dpm($node);   
+    $node->field_YOUR_FIELD[LANGUAGE_NONE][0]['value'] = $record->CDATA;
+    drupal_set_message("Write to node: ");
+//dpm($node->field_YOUR_FIELD[LANGUAGE_NONE][0]['value']);
+    $node = node_submit($node);
+    node_save($node);  
+    drupal_set_message("Requirements Updated"); 
+      }    
+    }
+

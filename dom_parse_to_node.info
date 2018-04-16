@@ -1,0 +1,4 @@
+name = dom_parse_to_node Importer Alpha 0.9
+description = Scrape DOM elemnt contents from the web and update node fields
+core = 7.x
+dependencies[] = simplehtmldom
