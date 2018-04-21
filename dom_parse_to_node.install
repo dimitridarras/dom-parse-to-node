@@ -1,0 +1,79 @@
+Ä<?php
+
+/*
+ *Implement hook_schema().
+ */
+
+function dom_parse_to_node_schema() {
+  $schema = array();
+  $schema['dom_parse_to_node'] = array( 
+    'description' => 'Scraped IDs and CDATA',
+    'fields' => array(
+      'internal_id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => "Internal ID",
+      ),  
+      'banner_id' => array(
+        'type' => 'text',        
+        'description' => "Item ID",
+        'length' => '1024',
+      ),      
+      'CDATA' => array(
+        'type' => 'text',
+        'description' => 'CDATA',
+        'length' => '36000',
+      ),
+    ),
+     'primary key' => array(
+    'internal_id',
+    ),
+  );
+
+  $schema['Internal_node_ids§'] = array(
+    'description' => 'Internal Node IDs',
+    'fields' => array(
+      'internal_id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => "Internal ID",
+      ),       
+      'banner_id' => array(
+        'type' => 'text',        
+        'description' => "Internal Node IDs",
+        'length' => '1024',
+      ), 
+      'nid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => "Nid",
+      ),                
+      'data' => array(
+        'type' => 'text',
+        'description' => 'General Data',
+      ),
+    ),
+     'primary key' => array(
+    'internal_id',
+  ),
+  );
+  return $schema;    
+  }
+
+/*
+ *Implements hook_update_N().
+ */
+
+function dom_parse_to_node_update_9121() {
+  drupal_install_schema('dom_parse_to_node');
+  //drupal_set_message("update_x installed");
+}
+
+
+
+
+
+
